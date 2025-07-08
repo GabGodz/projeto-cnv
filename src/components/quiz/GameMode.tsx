@@ -1,252 +1,232 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ArrowRight, Target, Brain, Loader2 } from 'lucide-react';
 import { UserProfile, GameState } from '../QuizContainer';
+import { initializeGemini, generateScenarios, generateFeedback } from '@/services/geminiService';
+import { useToast } from '@/hooks/use-toast';
 
 interface GameModeProps {
   userProfile: UserProfile;
-  onComplete: (gameState: GameState) => void;
+  apiKey: string;
+  onComplete: (finalGameState: GameState) => void;
 }
 
 interface Scenario {
-  id: number;
   situation: string;
-  context: string;
   options: {
     passive: string;
     cnv: string;
     neutral: string;
     problematic: string;
   };
-  correctAnswer: 'cnv';
 }
 
-const GameMode: React.FC<GameModeProps> = ({ userProfile, onComplete }) => {
-  const [currentScenario, setCurrentScenario] = useState(0);
+const GameMode: React.FC<GameModeProps> = ({ userProfile, apiKey, onComplete }) => {
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
-  const [gameAnswers, setGameAnswers] = useState<Array<{
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const [detailedFeedback, setDetailedFeedback] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
+  const [answers, setAnswers] = useState<Array<{
     scenario: string;
     chosen: string;
     feedback: string;
     points: number;
   }>>([]);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [selectedAnswer, setSelectedAnswer] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [scenarios, setScenarios] = useState<Scenario[]>([]);
-
-  // Mock scenarios - Em produção, estes viriam da API Gemini
-  const generateMockScenarios = (): Scenario[] => {
-    const baseScenarios: Scenario[] = [
-      {
-        id: 1,
-        situation: "Conflito em Reunião de Equipe",
-        context: `Durante uma reunião, um colega interrompe você constantemente e desconsidera suas ideias. Outros membros da equipe começam a ficar desconfortáveis com a situação.`,
-        options: {
-          passive: "Fico quieto(a) e deixo passar para evitar mais conflito",
-          cnv: "Digo: 'Quando sou interrompido(a), sinto-me desrespeitado(a) e preciso que cada um tenha seu tempo para falar. Podemos estabelecer uma ordem?'",
-          neutral: "Espero a reunião acabar e converso com o gestor depois",
-          problematic: "Interrompo de volta dizendo: 'Você está sendo muito inconveniente, me deixe falar!'"
-        },
-        correctAnswer: 'cnv'
-      },
-      {
-        id: 2,
-        situation: "Feedback Difícil para Subordinado",
-        context: `Um colaborador da sua equipe tem apresentado baixo desempenho e isso está afetando os resultados do time. Você precisa dar um feedback.`,
-        options: {
-          passive: "Evito o assunto e espero que ele melhore sozinho",
-          cnv: "'Observei que nas últimas semanas algumas entregas ficaram pendentes. Estou preocupado(a) com o time e preciso entender como posso te apoiar.'",
-          neutral: "Mando um email formal sobre os problemas de performance",
-          problematic: "Falo diretamente: 'Seu trabalho está péssimo, precisa melhorar urgente ou teremos problemas'"
-        },
-        correctAnswer: 'cnv'
-      }
-    ];
-
-    return baseScenarios;
-  };
+  
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Simula carregamento da API
-    setTimeout(() => {
-      setScenarios(generateMockScenarios());
-      setIsLoading(false);
-    }, 1500);
-  }, []);
+    const loadScenarios = async () => {
+      try {
+        setIsLoading(true);
+        initializeGemini(apiKey);
+        const generatedScenarios = await generateScenarios(userProfile);
+        setScenarios(generatedScenarios);
+      } catch (error) {
+        console.error('Erro ao carregar cenários:', error);
+        toast({
+          title: "Erro ao carregar cenários",
+          description: "Houve um problema ao gerar os cenários personalizados.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const getAnswerType = (answer: string): string => {
-    const scenario = scenarios[currentScenario];
-    if (answer === scenario.options.cnv) return 'cnv';
-    if (answer === scenario.options.passive) return 'passive';
-    if (answer === scenario.options.neutral) return 'neutral';
-    return 'problematic';
-  };
+    if (apiKey && userProfile.name) {
+      loadScenarios();
+    }
+  }, [apiKey, userProfile, toast]);
 
-  const getPoints = (answerType: string): number => {
-    switch (answerType) {
-      case 'cnv': return 10;
-      case 'neutral': return 5;
-      case 'passive': return 2;
-      case 'problematic': return 0;
-      default: return 0;
+  const handleAnswerSelect = async (answerIndex: number) => {
+    if (isGeneratingFeedback) return;
+    
+    setSelectedAnswer(answerIndex);
+    setIsGeneratingFeedback(true);
+    
+    try {
+      const currentScenario = scenarios[currentQuestion];
+      const optionTypes = ['passive', 'cnv', 'neutral', 'problematic'] as const;
+      const chosenType = optionTypes[answerIndex];
+      const chosenOption = Object.values(currentScenario.options)[answerIndex];
+      
+      const feedbackResponse = await generateFeedback(
+        currentScenario.situation,
+        chosenOption,
+        chosenType,
+        userProfile.name
+      );
+      
+      setScore(prev => prev + feedbackResponse.points);
+      setFeedback(feedbackResponse.immediate);
+      setDetailedFeedback(feedbackResponse.detailed);
+      setShowFeedback(true);
+      
+      // Store answer
+      setAnswers(prev => [...prev, {
+        scenario: currentScenario.situation,
+        chosen: chosenOption,
+        feedback: feedbackResponse.immediate,
+        points: feedbackResponse.points
+      }]);
+    } catch (error) {
+      console.error('Erro ao gerar feedback:', error);
+      toast({
+        title: "Erro ao gerar feedback",
+        description: "Houve um problema ao processar sua resposta.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingFeedback(false);
     }
   };
 
-  const getFeedback = (answerType: string): string => {
-    const feedbacks = {
-      cnv: `Excelente, ${userProfile.name}! Você aplicou os princípios da CNV de forma clara: observação sem julgamento, expressão de sentimentos e necessidades, e um pedido específico.`,
-      neutral: `Boa tentativa, ${userProfile.name}. Sua abordagem evita conflito, mas pode ser mais efetiva se você expressar seus sentimentos e necessidades diretamente.`,
-      passive: `${userProfile.name}, entendo o desejo de evitar conflito, mas essa abordagem pode perpetuar o problema. Tente expressar suas necessidades de forma respeitosa.`,
-      problematic: `${userProfile.name}, essa abordagem pode escalar o conflito. Em CNV, focamos em observações e necessidades ao invés de julgamentos e críticas.`
-    };
-    return feedbacks[answerType as keyof typeof feedbacks];
-  };
-
-  const handleAnswerSelect = (answer: string) => {
-    setSelectedAnswer(answer);
-    const answerType = getAnswerType(answer);
-    const points = getPoints(answerType);
-    const feedback = getFeedback(answerType);
-
-    setScore(score + points);
-    setGameAnswers([...gameAnswers, {
-      scenario: scenarios[currentScenario].situation,
-      chosen: answer,
-      feedback,
-      points
-    }]);
-
-    setShowFeedback(true);
-  };
-
-  const handleNextScenario = () => {
-    if (currentScenario < scenarios.length - 1) {
-      setCurrentScenario(currentScenario + 1);
-      setShowFeedback(false);
-      setSelectedAnswer('');
+  const handleNextQuestion = () => {
+    setShowFeedback(false);
+    setSelectedAnswer(null);
+    setFeedback('');
+    setDetailedFeedback('');
+    
+    if (currentQuestion < scenarios.length - 1) {
+      setCurrentQuestion(prev => prev + 1);
     } else {
-      // Fim do jogo
+      // Game completed
       onComplete({
-        currentQuestion: currentScenario + 1,
+        currentQuestion: currentQuestion + 1,
         score,
-        answers: gameAnswers
+        answers
       });
     }
   };
 
   if (isLoading) {
     return (
-      <div className="card-glass max-w-2xl mx-auto text-center animate-slide-up">
-        <div className="animate-pulse">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center mx-auto mb-6">
-            <Clock className="w-8 h-8 text-white animate-spin" />
-          </div>
-          <h2 className="text-2xl font-bold mb-4">
-            Preparando seus cenários, {userProfile.name}...
-          </h2>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+          <h3 className="text-xl font-semibold mb-2">Gerando cenários personalizados...</h3>
           <p className="text-muted-foreground">
-            Nossa IA está criando situações personalizadas baseadas no seu perfil
+            Nossa IA está criando situações específicas para seu perfil
           </p>
         </div>
       </div>
     );
   }
 
-  const scenario = scenarios[currentScenario];
-  const answerType = selectedAnswer ? getAnswerType(selectedAnswer) : '';
-
-  return (
-    <div className="max-w-4xl mx-auto animate-slide-up">
-      {/* Header com score */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Cenário {currentScenario + 1}/10</h2>
+  if (scenarios.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Brain className="w-12 h-12 mx-auto mb-4 text-destructive" />
+          <h3 className="text-xl font-semibold mb-2">Erro ao carregar cenários</h3>
           <p className="text-muted-foreground">
-            Olá, <span className="text-accent">{userProfile.name}</span>
+            Não foi possível gerar os cenários personalizados
           </p>
         </div>
-        <div className="score-display flex items-center gap-2">
-          <Trophy className="w-5 h-5" />
-          <span>{score} pontos</span>
-        </div>
       </div>
+    );
+  }
 
-      {!showFeedback ? (
-        /* Cenário e opções */
-        <div className="card-glass">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-primary mb-3">
-              {scenario.situation}
-            </h3>
-            <div className="bg-muted/50 rounded-lg p-4">
-              <p className="text-foreground leading-relaxed">
-                {scenario.context}
-              </p>
-            </div>
-          </div>
+  const currentScenario = scenarios[currentQuestion];
+  const isLastQuestion = currentQuestion === scenarios.length - 1;
 
-          <div className="space-y-3">
-            <p className="font-medium mb-4">Como você reagiria nesta situação?</p>
-            
-            {Object.entries(scenario.options).map(([type, option]) => (
-              <button
-                key={type}
-                onClick={() => handleAnswerSelect(option)}
-                className="w-full text-left p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group"
-              >
-                <p className="font-medium group-hover:text-primary transition-colors">
-                  {option}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        /* Feedback */
-        <div className="space-y-6">
-          <div className="card-glass">
-            <div className="text-center mb-6">
-              {answerType === 'cnv' && (
-                <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
-              )}
-              {answerType === 'neutral' && (
-                <AlertCircle className="w-16 h-16 text-warning mx-auto mb-4" />
-              )}
-              {(answerType === 'passive' || answerType === 'problematic') && (
-                <XCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
-              )}
-              
-              <h3 className="text-xl font-bold mb-2">
-                +{getPoints(answerType)} pontos
-              </h3>
-            </div>
-
-            <div className="bg-muted/50 rounded-lg p-4 mb-6">
-              <p className="text-foreground leading-relaxed">
-                {getFeedback(answerType)}
-              </p>
-            </div>
-
-            {answerType !== 'cnv' && (
-              <div className="bg-success/10 border border-success/20 rounded-lg p-4">
-                <h4 className="font-semibold text-success mb-2">
-                  💡 A abordagem CNV ideal seria:
-                </h4>
-                <p className="text-foreground">
-                  {scenario.options.cnv}
-                </p>
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="card-glass">
+        {!showFeedback ? (
+          <>
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-3">
+                <Target className="w-6 h-6 text-accent" />
+                <span className="text-lg font-medium">
+                  Pergunta {currentQuestion + 1} de {scenarios.length}
+                </span>
               </div>
-            )}
-          </div>
+              <div className="score-display">
+                {score} pontos
+              </div>
+            </div>
 
-          <div className="text-center">
-            <Button onClick={handleNextScenario} className="btn-hero">
-              {currentScenario < scenarios.length - 1 ? 'Próximo Cenário' : 'Ver Resultado Final'}
-            </Button>
+            {/* Scenario */}
+            <div className="card-glass mb-8">
+              <h3 className="text-xl font-semibold mb-4 text-accent">Situação:</h3>
+              <p className="text-lg leading-relaxed">{currentScenario.situation}</p>
+            </div>
+
+            {/* Options */}
+            <div className="space-y-4 mb-8">
+              {Object.values(currentScenario.options).map((option, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  className={`w-full p-6 h-auto text-left justify-start hover:bg-primary/10 transition-all ${
+                    selectedAnswer === index ? 'bg-primary/20 border-primary' : ''
+                  } ${isGeneratingFeedback ? 'opacity-50' : ''}`}
+                  onClick={() => handleAnswerSelect(index)}
+                  disabled={showFeedback || isGeneratingFeedback}
+                >
+                  {isGeneratingFeedback && selectedAnswer === index && (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  )}
+                  <span className="text-base leading-relaxed">{option}</span>
+                </Button>
+              ))}
+            </div>
+          </>
+        ) : (
+          /* Feedback */
+          <div className="card-glass bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+            <div className="flex items-start gap-4">
+              <Brain className="w-6 h-6 text-accent mt-1 flex-shrink-0" />
+              <div className="flex-1">
+                <h4 className="font-semibold mb-2 text-accent">Feedback Imediato:</h4>
+                <p className="text-base leading-relaxed mb-4">{feedback}</p>
+                
+                {detailedFeedback && (
+                  <div className="mb-4 p-4 bg-muted/20 rounded-lg">
+                    <h5 className="font-medium mb-2 text-secondary">Análise Detalhada:</h5>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{detailedFeedback}</p>
+                  </div>
+                )}
+                
+                <Button 
+                  onClick={handleNextQuestion}
+                  className="btn-hero"
+                >
+                  {isLastQuestion ? 'Ver Resultados' : 'Próxima Pergunta'}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

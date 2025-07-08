@@ -4,6 +4,7 @@ import InitialQuestion from './quiz/InitialQuestion';
 import QuestionnaireFlow from './quiz/QuestionnaireFlow';
 import GameMode from './quiz/GameMode';
 import FinalResults from './quiz/FinalResults';
+import ApiKeyInput from './ApiKeyInput';
 
 export interface UserProfile {
   name: string;
@@ -22,10 +23,11 @@ export interface GameState {
   }>;
 }
 
-type QuizStep = 'name' | 'initial' | 'questionnaire' | 'game' | 'results';
+type QuizStep = 'apikey' | 'name' | 'initial' | 'questionnaire' | 'game' | 'results';
 
 const QuizContainer: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState<QuizStep>('name');
+  const [currentStep, setCurrentStep] = useState<QuizStep>('apikey');
+  const [apiKey, setApiKey] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: '',
     knowsCNV: false,
@@ -36,6 +38,13 @@ const QuizContainer: React.FC = () => {
     score: 0,
     answers: []
   });
+
+  const handleApiKeySet = (key: string) => {
+    setApiKey(key);
+    if (key) {
+      setCurrentStep('name');
+    }
+  };
 
   const handleNameSubmit = (name: string) => {
     setUserProfile(prev => ({ ...prev, name }));
@@ -58,13 +67,16 @@ const QuizContainer: React.FC = () => {
   };
 
   const resetQuiz = () => {
-    setCurrentStep('name');
+    setCurrentStep('apikey');
     setUserProfile({ name: '', knowsCNV: false, answers: [] });
     setGameState({ currentQuestion: 0, score: 0, answers: [] });
   };
 
   const renderStep = () => {
     switch (currentStep) {
+      case 'apikey':
+        return <ApiKeyInput onApiKeySet={handleApiKeySet} />;
+        
       case 'name':
         return <NameInput onSubmit={handleNameSubmit} />;
       
@@ -89,6 +101,7 @@ const QuizContainer: React.FC = () => {
         return (
           <GameMode
             userProfile={userProfile}
+            apiKey={apiKey}
             onComplete={handleGameComplete}
           />
         );
