@@ -1,59 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Brain, Users, Target } from 'lucide-react';
-
 interface HeroSectionProps {
   onStartQuiz: () => void;
 }
-
-const HeroSection: React.FC<HeroSectionProps> = ({ onStartQuiz }) => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
+const HeroSection: React.FC<HeroSectionProps> = ({
+  onStartQuiz
+}) => {
+  const [mousePosition, setMousePosition] = useState({
+    x: 0,
+    y: 0
+  });
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
-        x: (e.clientX / window.innerWidth) * 100,
-        y: (e.clientY / window.innerHeight) * 100,
+        x: e.clientX / window.innerWidth * 100,
+        y: e.clientY / window.innerHeight * 100
       });
     };
-
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
-
   const parallaxStyle = {
-    transform: `translate(${mousePosition.x * 0.02}px, ${mousePosition.y * 0.02}px)`,
+    transform: `translate(${mousePosition.x * 0.02}px, ${mousePosition.y * 0.02}px)`
   };
-
-  return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
+  return <div className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
       {/* Elementos decorativos que seguem o mouse */}
-      <div 
-        className="absolute top-20 left-20 w-32 h-32 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 blur-xl animate-float"
-        style={parallaxStyle}
-      />
-      <div 
-        className="absolute bottom-20 right-20 w-48 h-48 rounded-full bg-gradient-to-r from-accent/20 to-primary/20 blur-xl animate-float"
-        style={{
-          transform: `translate(${mousePosition.x * -0.03}px, ${mousePosition.y * -0.03}px)`,
-          animationDelay: '2s'
-        }}
-      />
-      <div 
-        className="absolute top-1/2 left-10 w-24 h-24 rounded-full bg-gradient-to-r from-secondary/30 to-accent/30 blur-lg animate-float"
-        style={{
-          transform: `translate(${mousePosition.x * 0.015}px, ${mousePosition.y * 0.015}px)`,
-          animationDelay: '4s'
-        }}
-      />
+      <div className="absolute top-20 left-20 w-32 h-32 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 blur-xl animate-float" style={parallaxStyle} />
+      <div className="absolute bottom-20 right-20 w-48 h-48 rounded-full bg-gradient-to-r from-accent/20 to-primary/20 blur-xl animate-float" style={{
+      transform: `translate(${mousePosition.x * -0.03}px, ${mousePosition.y * -0.03}px)`,
+      animationDelay: '2s'
+    }} />
+      <div className="absolute top-1/2 left-10 w-24 h-24 rounded-full bg-gradient-to-r from-secondary/30 to-accent/30 blur-lg animate-float" style={{
+      transform: `translate(${mousePosition.x * 0.015}px, ${mousePosition.y * 0.015}px)`,
+      animationDelay: '4s'
+    }} />
 
       {/* Conteúdo principal */}
       <div className="relative z-10 text-center max-w-6xl mx-auto">
         {/* Badge tecnológico */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm mb-8 animate-slide-up">
           <Brain className="w-4 h-4 text-accent" />
-          <span className="text-sm font-medium text-muted-foreground">
-            Powered by AI • CNV Training
-          </span>
+          <span className="text-sm font-medium text-muted-foreground">Powered by • Turma 88</span>
         </div>
 
         {/* Título principal */}
@@ -99,10 +86,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onStartQuiz }) => {
 
         {/* Call to Action */}
         <div className="space-y-4 animate-slide-up">
-          <button 
-            onClick={onStartQuiz}
-            className="btn-hero group inline-flex items-center gap-3"
-          >
+          <button onClick={onStartQuiz} className="btn-hero group inline-flex items-center gap-3">
             <span>Iniciar Jornada CNV</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
@@ -133,8 +117,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onStartQuiz }) => {
 
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-background/30 pointer-events-none" />
-    </div>
-  );
+    </div>;
 };
-
 export default HeroSection;
