@@ -91,9 +91,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
           
-          <p className="text-sm text-muted-foreground">
-            ✨ Gratuito • 6 perguntas • 10 cenários • Feedback personalizado
-          </p>
+          <p className="text-sm text-muted-foreground">✨  6 perguntas • 10 cenários • Feedback personalizado</p>
         </div>
 
         {/* Estatísticas */}
