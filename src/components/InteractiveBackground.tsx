@@ -5,9 +5,12 @@ interface Particle {
   y: number;
   vx: number;
   vy: number;
+  baseVx: number;
+  baseVy: number;
   size: number;
   color: string;
   opacity: number;
+  timeOffset: number;
 }
 
 const InteractiveBackground: React.FC = () => {
@@ -15,6 +18,7 @@ const InteractiveBackground: React.FC = () => {
   const mouseRef = useRef({ x: 0, y: 0 });
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number>();
+  const timeRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -30,7 +34,7 @@ const InteractiveBackground: React.FC = () => {
 
     const createParticles = () => {
       const particles: Particle[] = [];
-      const particleCount = Math.min(150, window.innerWidth / 10);
+      const particleCount = Math.min(100, window.innerWidth / 12);
       
       const colors = [
         'hsl(217, 91%, 60%)', // primary
@@ -42,11 +46,14 @@ const InteractiveBackground: React.FC = () => {
         particles.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: (Math.random() - 0.5) * 0.8,
+          baseVx: (Math.random() - 0.5) * 0.5,
+          baseVy: (Math.random() - 0.5) * 0.5,
           size: Math.random() * 3 + 1,
           color: colors[Math.floor(Math.random() * colors.length)],
-          opacity: Math.random() * 0.6 + 0.2,
+          opacity: Math.random() * 0.6 + 0.3,
+          timeOffset: Math.random() * Math.PI * 2,
         });
       }
       
@@ -59,56 +66,69 @@ const InteractiveBackground: React.FC = () => {
     };
 
     const animate = () => {
+      timeRef.current += 0.01;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       const particles = particlesRef.current;
       const mouse = mouseRef.current;
 
       particles.forEach((particle, index) => {
-        // Calculate distance to mouse
+        // Movimento base constante com ondas senoidais
+        const waveX = Math.sin(timeRef.current + particle.timeOffset) * 0.3;
+        const waveY = Math.cos(timeRef.current + particle.timeOffset * 1.5) * 0.3;
+        
+        // Aplicar movimento base
+        particle.vx = particle.baseVx + waveX;
+        particle.vy = particle.baseVy + waveY;
+
+        // Influência do mouse (mais sutil)
         const dx = mouse.x - particle.x;
         const dy = mouse.y - particle.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Mouse influence
-        if (distance < 150) {
-          const force = (150 - distance) / 150;
-          particle.vx += (dx / distance) * force * 0.01;
-          particle.vy += (dy / distance) * force * 0.01;
+        if (distance < 100) {
+          const force = (100 - distance) / 100;
+          particle.vx += (dx / distance) * force * 0.008;
+          particle.vy += (dy / distance) * force * 0.008;
         }
 
-        // Update position
+        // Atualizar posição
         particle.x += particle.vx;
         particle.y += particle.vy;
 
-        // Friction
-        particle.vx *= 0.99;
-        particle.vy *= 0.99;
-
-        // Boundary check
-        if (particle.x < 0 || particle.x > canvas.width) {
-          particle.vx *= -1;
+        // Verificar limites e fazer bounce suave
+        if (particle.x <= 0 || particle.x >= canvas.width) {
+          particle.baseVx *= -0.8;
+          particle.vx *= -0.8;
           particle.x = Math.max(0, Math.min(canvas.width, particle.x));
         }
-        if (particle.y < 0 || particle.y > canvas.height) {
-          particle.vy *= -1;
+        if (particle.y <= 0 || particle.y >= canvas.height) {
+          particle.baseVy *= -0.8;
+          particle.vy *= -0.8;
           particle.y = Math.max(0, Math.min(canvas.height, particle.y));
         }
 
-        // Draw particle
+        // Aplicar atrito suave
+        particle.vx *= 0.995;
+        particle.vy *= 0.995;
+
+        // Atualizar opacidade dinamicamente
+        particle.opacity = 0.4 + Math.sin(timeRef.current + particle.timeOffset) * 0.3;
+
+        // Desenhar partícula
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = particle.color.replace(')', `, ${particle.opacity})`).replace('hsl', 'hsla');
+        ctx.fillStyle = particle.color.replace(')', `, ${Math.abs(particle.opacity)})`).replace('hsl', 'hsla');
         ctx.fill();
 
-        // Draw connections
+        // Desenhar conexões
         particles.slice(index + 1).forEach(otherParticle => {
           const dx2 = particle.x - otherParticle.x;
           const dy2 = particle.y - otherParticle.y;
           const distance2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
 
-          if (distance2 < 100) {
-            const opacity = (100 - distance2) / 100 * 0.3;
+          if (distance2 < 80) {
+            const opacity = (80 - distance2) / 80 * 0.4;
             ctx.beginPath();
             ctx.moveTo(particle.x, particle.y);
             ctx.lineTo(otherParticle.x, otherParticle.y);
