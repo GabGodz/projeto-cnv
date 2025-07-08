@@ -40,7 +40,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Badge tecnológico */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm mb-8 animate-slide-up">
           <Brain className="w-4 h-4 text-accent" />
-          <span className="text-sm font-medium text-muted-foreground">Powered by • Turma 88</span>
+          <span className="text-sm font-medium text-muted-foreground">Powered by • Class 88</span>
         </div>
 
         {/* Título principal */}
