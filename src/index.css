@@ -38,7 +38,9 @@
 
     /* Estados especiais */
     --success: 150 80% 55%;
+    --success-foreground: 220 30% 5%;
     --warning: 45 95% 60%;
+    --warning-foreground: 220 30% 5%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
