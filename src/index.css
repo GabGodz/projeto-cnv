@@ -138,7 +138,7 @@
   .btn-hero {
     @apply relative px-8 py-4 rounded-2xl font-semibold text-lg;
     @apply bg-gradient-to-r from-primary to-secondary;
-    @apply text-primary-foreground;
+    @apply text-white;
     @apply transition-all duration-300 ease-out;
     @apply hover:scale-105 hover:shadow-2xl;
     @apply border border-white/20;
@@ -153,10 +153,11 @@
   }
 
   .btn-hero:hover::before {
-    @apply opacity-100;
+    @apply opacity-20;
   }
 
   .btn-hero:hover {
+    @apply text-white;
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 20px 40px hsl(var(--primary) / 0.4);
   }
