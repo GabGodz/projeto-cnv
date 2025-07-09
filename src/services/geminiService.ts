@@ -1,3 +1,4 @@
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface UserProfile {
@@ -153,35 +154,60 @@ export const generateFinalFeedback = async (
   const percentage = (totalScore / (totalQuestions * 10)) * 100;
 
   const prompt = `
-Crie um feedback final personalizado para ${userName} sobre seu desempenho no treinamento de CNV:
+Crie um feedback final personalizado para ${userName} sobre seu desempenho no treinamento de CNV.
 
-PONTUAÇÃO: ${totalScore}/${totalQuestions * 10} (${percentage.toFixed(1)}%)
+PONTUAÇÃO: ${totalScore} de ${totalQuestions * 10} pontos possíveis (${percentage.toFixed(1)}%)
 DISTRIBUIÇÃO DAS RESPOSTAS:
-- CNV: ${answerCategories.cnv}
-- Neutras: ${answerCategories.neutral}  
-- Passivas: ${answerCategories.passive}
-- Problemáticas: ${answerCategories.problematic}
+- Respostas CNV: ${answerCategories.cnv} de ${totalQuestions}
+- Respostas Neutras: ${answerCategories.neutral} de ${totalQuestions}
+- Respostas Passivas: ${answerCategories.passive} de ${totalQuestions}
+- Respostas Problemáticas: ${answerCategories.problematic} de ${totalQuestions}
 
-O feedback deve:
-1. Usar o nome ${userName}
-2. Ser motivador e construtivo
-3. Destacar pontos fortes
-4. Sugerir áreas de melhoria
-5. Relacionar com produtividade no trabalho
-6. Ter tom profissional mas acolhedor
-7. SEM caracteres especiais como asteriscos, aspas duplas ou simples
-8. Usar linguagem natural e humana
+Instruções para o feedback:
+1. Use o nome ${userName} de forma personalizada
+2. Seja motivador e construtivo
+3. Destaque pontos fortes baseados no desempenho
+4. Sugira áreas específicas de melhoria
+5. Relacione os resultados com benefícios no ambiente corporativo
+6. Use tom profissional mas acolhedor
+7. Remova completamente asteriscos, aspas duplas ou simples
+8. Use linguagem natural e conversacional
+9. Máximo 250 palavras
+10. Termine com uma mensagem motivadora
 
-Máximo 300 palavras.
+Escreva apenas o texto do feedback, sem formatação especial.
 `;
 
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text();
-    return text.replace(/[*"']/g, '');
+    let text = response.text();
+    
+    // Remove caracteres especiais e formatação
+    text = text.replace(/[*"'`#]/g, '');
+    text = text.replace(/\*\*/g, '');
+    text = text.replace(/\n\s*\n/g, '\n');
+    text = text.trim();
+    
+    return text;
   } catch (error) {
     console.error('Erro ao gerar feedback final:', error);
-    throw new Error('Falha ao gerar feedback final');
+    
+    // Fallback em caso de erro
+    let fallbackMessage = `Parabéns, ${userName}! `;
+    
+    if (percentage >= 80) {
+      fallbackMessage += `Você teve um excelente desempenho com ${totalScore} pontos! Demonstrou forte domínio dos princípios de CNV.`;
+    } else if (percentage >= 60) {
+      fallbackMessage += `Você teve um bom desempenho com ${totalScore} pontos! Está no caminho certo para dominar a CNV.`;
+    } else if (percentage >= 40) {
+      fallbackMessage += `Você fez um bom esforço com ${totalScore} pontos! Há espaço para crescimento na aplicação da CNV.`;
+    } else {
+      fallbackMessage += `Você completou o treinamento com ${totalScore} pontos! Este é apenas o início da sua jornada de aprendizado em CNV.`;
+    }
+    
+    fallbackMessage += ` Continue praticando essas habilidades no seu dia a dia corporativo. A Comunicação Não Violenta é uma ferramenta poderosa para melhorar relacionamentos e aumentar a produtividade no trabalho. Parabéns por investir no seu desenvolvimento pessoal e profissional!`;
+    
+    return fallbackMessage;
   }
 };
