@@ -34,30 +34,30 @@ export const generateScenarios = async (userProfile: UserProfile): Promise<Scena
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
   const prompt = `
-Como especialista em Comunicação Não Violenta (CNV), crie EXATAMENTE 10 cenários do COTIDIANO personalizados para ${userProfile.name}.
+Como especialista em Comunicação Não Violenta (CNV), crie EXATAMENTE 10 cenários do COTIDIANO CORPORATIVO personalizados para ${userProfile.name}.
 
 Perfil do usuário:
 - Nome: ${userProfile.name}
 - Conhece CNV: ${userProfile.knowsCNV ? 'Sim' : 'Não'}
 - Respostas do questionário: ${userProfile.answers.join(', ')}
 
-IMPORTANTE: Crie situações do DIA A DIA (família, amigos, vizinhos, trânsito, compras, etc), não corporativas.
+IMPORTANTE: Crie situações do DIA A DIA no AMBIENTE CORPORATIVO (reuniões, conversas com colegas, feedbacks, conflitos no trabalho, comunicação com chefe, etc).
 
 Para cada cenário, forneça:
-1. Uma situação cotidiana específica e realista
+1. Uma situação corporativa cotidiana específica e realista
 2. Exatamente 4 opções de resposta com TAMANHO SIMILAR (máximo 2 linhas cada):
    - PASSIVA: Evita o conflito, não resolve (máximo 2 linhas)
    - CNV: Aplica CNV de forma CONCISA (máximo 2 linhas)
    - NEUTRA: Resposta comum mas não resolve (máximo 2 linhas)  
    - PROBLEMÁTICA: Resposta conflituosa (máximo 2 linhas)
 
-TODAS as respostas devem ter tamanho similar e ser concisas.
+TODAS as respostas devem ter tamanho similar, ser concisas e SEM caracteres especiais como asteriscos, aspas duplas ou simples.
 
 Responda em JSON válido no formato:
 {
   "scenarios": [
     {
-      "situation": "descrição da situação cotidiana",
+      "situation": "descrição da situação corporativa cotidiana",
       "options": {
         "passive": "resposta passiva concisa",
         "cnv": "resposta CNV concisa",
@@ -117,7 +117,7 @@ Forneça feedback em JSON:
   "points": ${pointsMap[optionType]}
 }
 
-O feedback deve ser construtivo, educativo e motivador.
+O feedback deve ser construtivo, educativo, motivador e SEM caracteres especiais como asteriscos, aspas duplas ou simples. Use linguagem natural e humana.
 `;
 
   try {
@@ -130,8 +130,8 @@ O feedback deve ser construtivo, educativo e motivador.
     
     const data = JSON.parse(jsonMatch[0]);
     return {
-      immediate: data.immediate,
-      detailed: data.detailed,
+      immediate: data.immediate?.replace(/[*"']/g, ''),
+      detailed: data.detailed?.replace(/[*"']/g, ''),
       points: pointsMap[optionType]
     };
   } catch (error) {
@@ -169,6 +169,8 @@ O feedback deve:
 4. Sugerir áreas de melhoria
 5. Relacionar com produtividade no trabalho
 6. Ter tom profissional mas acolhedor
+7. SEM caracteres especiais como asteriscos, aspas duplas ou simples
+8. Usar linguagem natural e humana
 
 Máximo 300 palavras.
 `;
@@ -176,7 +178,8 @@ Máximo 300 palavras.
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    return response.text();
+    const text = response.text();
+    return text.replace(/[*"']/g, '');
   } catch (error) {
     console.error('Erro ao gerar feedback final:', error);
     throw new Error('Falha ao gerar feedback final');

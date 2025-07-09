@@ -185,7 +185,7 @@ const GameMode: React.FC<GameModeProps> = ({ userProfile, apiKey, onComplete }) 
                 <Button
                   key={index}
                   variant="outline"
-                  className={`w-full p-4 h-auto text-left justify-start hover:bg-primary/10 transition-all whitespace-normal break-words ${
+                  className={`w-full p-4 h-auto text-left justify-start hover:bg-primary/20 hover:border-primary/50 hover:scale-[1.02] transition-all duration-300 whitespace-normal break-words ${
                     selectedAnswer === index ? 'bg-primary/20 border-primary' : ''
                   } ${isGeneratingFeedback ? 'opacity-50' : ''}`}
                   onClick={() => handleAnswerSelect(index)}
