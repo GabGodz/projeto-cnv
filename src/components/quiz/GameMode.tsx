@@ -185,16 +185,18 @@ const GameMode: React.FC<GameModeProps> = ({ userProfile, apiKey, onComplete }) 
                 <Button
                   key={index}
                   variant="outline"
-                  className={`w-full p-6 h-auto text-left justify-start hover:bg-primary/10 transition-all ${
+                  className={`w-full p-4 h-auto text-left justify-start hover:bg-primary/10 transition-all whitespace-normal break-words ${
                     selectedAnswer === index ? 'bg-primary/20 border-primary' : ''
                   } ${isGeneratingFeedback ? 'opacity-50' : ''}`}
                   onClick={() => handleAnswerSelect(index)}
                   disabled={showFeedback || isGeneratingFeedback}
                 >
-                  {isGeneratingFeedback && selectedAnswer === index && (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  )}
-                  <span className="text-base leading-relaxed">{option}</span>
+                  <div className="flex items-start gap-2 w-full">
+                    {isGeneratingFeedback && selectedAnswer === index && (
+                      <Loader2 className="w-4 h-4 animate-spin mt-0.5 flex-shrink-0" />
+                    )}
+                    <span className="text-sm leading-relaxed text-left flex-1 break-words">{option}</span>
+                  </div>
                 </Button>
               ))}
             </div>

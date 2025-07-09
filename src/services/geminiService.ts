@@ -34,31 +34,35 @@ export const generateScenarios = async (userProfile: UserProfile): Promise<Scena
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
   const prompt = `
-Como especialista em Comunicação Não Violenta (CNV), crie EXATAMENTE 10 cenários corporativos personalizados para ${userProfile.name}.
+Como especialista em Comunicação Não Violenta (CNV), crie EXATAMENTE 10 cenários do COTIDIANO personalizados para ${userProfile.name}.
 
 Perfil do usuário:
 - Nome: ${userProfile.name}
 - Conhece CNV: ${userProfile.knowsCNV ? 'Sim' : 'Não'}
 - Respostas do questionário: ${userProfile.answers.join(', ')}
 
+IMPORTANTE: Crie situações do DIA A DIA (família, amigos, vizinhos, trânsito, compras, etc), não corporativas.
+
 Para cada cenário, forneça:
-1. Uma situação corporativa específica e realista
-2. Exatamente 4 opções de resposta:
-   - PASSIVA: Evita o conflito, não resolve o problema
-   - CNV: Aplica os princípios da Comunicação Não Violenta (observação, sentimento, necessidade, pedido)
-   - NEUTRA: Resposta que faz sentido mas não resolve efetivamente
-   - PROBLEMÁTICA: Resposta conflituosa ou inadequada
+1. Uma situação cotidiana específica e realista
+2. Exatamente 4 opções de resposta com TAMANHO SIMILAR (máximo 2 linhas cada):
+   - PASSIVA: Evita o conflito, não resolve (máximo 2 linhas)
+   - CNV: Aplica CNV de forma CONCISA (máximo 2 linhas)
+   - NEUTRA: Resposta comum mas não resolve (máximo 2 linhas)  
+   - PROBLEMÁTICA: Resposta conflituosa (máximo 2 linhas)
+
+TODAS as respostas devem ter tamanho similar e ser concisas.
 
 Responda em JSON válido no formato:
 {
   "scenarios": [
     {
-      "situation": "descrição da situação",
+      "situation": "descrição da situação cotidiana",
       "options": {
-        "passive": "resposta passiva",
-        "cnv": "resposta usando CNV",
-        "neutral": "resposta neutra",
-        "problematic": "resposta problemática"
+        "passive": "resposta passiva concisa",
+        "cnv": "resposta CNV concisa",
+        "neutral": "resposta neutra concisa",
+        "problematic": "resposta problemática concisa"
       }
     }
   ]
