@@ -31,7 +31,7 @@ export const initializeGemini = (apiKey: string) => {
 export const generateScenarios = async (userProfile: UserProfile): Promise<Scenario[]> => {
   if (!genAI) throw new Error('Gemini não inicializado');
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
   const prompt = `
 Como especialista em Comunicação Não Violenta (CNV), crie EXATAMENTE 10 cenários corporativos personalizados para ${userProfile.name}.
@@ -90,7 +90,7 @@ export const generateFeedback = async (
 ): Promise<FeedbackResponse> => {
   if (!genAI) throw new Error('Gemini não inicializado');
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
   const pointsMap = {
     cnv: 10,
@@ -144,7 +144,7 @@ export const generateFinalFeedback = async (
 ): Promise<string> => {
   if (!genAI) throw new Error('Gemini não inicializado');
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
   const percentage = (totalScore / (totalQuestions * 10)) * 100;
 
